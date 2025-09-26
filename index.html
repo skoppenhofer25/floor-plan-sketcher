@@ -490,6 +490,13 @@
   }
 
   function toPath(pts){ if(!pts.length) return ''; return 'M '+pts.map(p=>`${p.x} ${p.y}`).join(' L ')+' Z'; }
+  function snapEnabled(e){
+    if(!e) return snap;
+    if(snap){
+      return !(e.altKey||e.metaKey||e.ctrlKey);
+    }
+    return !!(e.shiftKey||e.metaKey||e.ctrlKey);
+  }
   function screenToWorld(x,y){
     const rect = (svg||svgHost).getBoundingClientRect();
     const localX = x - rect.left;
@@ -647,7 +654,7 @@
     const ap = activePoly(); if(!ap) return;
     if(tool==='draw'){
       let newPt={...pt};
-      if(ap.points.length){const last=ap.points[ap.points.length-1]; const v={x:pt.x-last.x,y:pt.y-last.y}; const s=snap?snapVec(v.x,v.y,true):v; newPt={x:last.x+s.x,y:last.y+s.y}}
+      if(ap.points.length){const last=ap.points[ap.points.length-1]; const v={x:pt.x-last.x,y:pt.y-last.y}; const useSnap=snapEnabled(e); const s=useSnap?snapVec(v.x,v.y,true):v; newPt={x:last.x+s.x,y:last.y+s.y}}
       const labels=ap.labels.slice(); if(labels.length<ap.points.length+1) labels.push({text:''});
       updateActive({points:[...ap.points,newPt], labels}); dragIndex=ap.points.length;
     } else if(tool==='edit'){
@@ -670,7 +677,7 @@
     }
     const ap=activePoly(); if(!ap){ buildSVG(); return; }
     if(dragIndex!=null){
-      const pts=ap.points.slice(); let np={...pt}; if(snap && e.shiftKey){ const prev=pts[(dragIndex-1+pts.length)%pts.length]||pts[dragIndex]; const v={x:pt.x-prev.x,y:pt.y-prev.y}; const s=snapVec(v.x,v.y,true); np={x:prev.x+s.x,y:prev.y+s.y}; }
+      const pts=ap.points.slice(); let np={...pt}; const useSnap=snapEnabled(e); if(useSnap){ const prev=pts[(dragIndex-1+pts.length)%pts.length]||pts[dragIndex]; const v={x:pt.x-prev.x,y:pt.y-prev.y}; const s=snapVec(v.x,v.y,true); np={x:prev.x+s.x,y:prev.y+s.y}; }
       pts[dragIndex]=np; updateActive({points:pts});
     } else {
       buildSVG();
@@ -720,14 +727,20 @@
   }
 
   // Controls
-  $('#toolDraw').onclick=()=>{tool='draw'; setStatusHint('Drawing mode'); uiTools();}
-  $('#toolEdit').onclick=()=>{tool='edit'; setStatusHint('Edit mode: drag vertices or notes'); uiTools();}
-  $('#toolNote').onclick=()=>{tool='note'; setStatusHint('Tap anywhere on the plan to add a note'); uiTools();}
-  $('#toolPan').onclick=()=>{tool='pan'; setStatusHint('Pan mode'); uiTools();}
-  function uiTools(){ ['toolDraw','toolEdit','toolNote','toolPan'].forEach(id=>{const el=$('#'+id); if(el) el.classList.remove('on');}); const current=$('#tool'+cap(tool)); if(current) current.classList.add('on'); buildSVG(); }
+  $('#toolDraw').onclick=()=>{tool='draw'; uiTools();}
+  $('#toolEdit').onclick=()=>{tool='edit'; uiTools();}
+  $('#toolNote').onclick=()=>{tool='note'; uiTools();}
+  $('#toolPan').onclick=()=>{tool='pan'; uiTools();}
+  function uiTools(){ ['toolDraw','toolEdit','toolNote','toolPan'].forEach(id=>{const el=$('#'+id); if(el) el.classList.remove('on');}); const current=$('#tool'+cap(tool)); if(current) current.classList.add('on'); const hint =
+      tool==='draw' ? (snap? 'Draw mode. Hold Alt to freehand.' : 'Draw mode. Hold Shift to snap 45°.') :
+      tool==='edit' ? (snap? 'Edit mode. Hold Alt to freehand drag.' : 'Edit mode. Hold Shift to snap drag.') :
+      tool==='note' ? 'Note mode. Click to drop callouts.' :
+      'Pan mode. Drag to move view.';
+    setStatusHint(hint,2500);
+    buildSVG(); }
   function cap(s){return s[0].toUpperCase()+s.slice(1)}
   $('#gridBtn').onclick=()=>{grid=!grid; $('#gridBtn').classList.toggle('on',grid); buildSVG()}
-  $('#snapBtn').onclick=()=>{snap=!snap; $('#snapBtn').textContent=snap?'Snap 0/45/90':'Free Angle'; $('#snapBtn').classList.toggle('on',snap)}
+  $('#snapBtn').onclick=()=>{snap=!snap; $('#snapBtn').textContent=snap?'Snap 0/45/90':'Free Angle'; $('#snapBtn').classList.toggle('on',snap); const hint = snap? 'Snapping enabled. Hold Alt to temporarily disable.' : 'Free angle drawing. Hold Shift to temporarily snap.'; setStatusHint(hint,2500);}
   $('#zoomIn').onclick=()=>{zoom=clamp(zoom*1.1,.25,8); buildSVG()}
   $('#zoomOut').onclick=()=>{zoom=clamp(zoom*0.9,.25,8); buildSVG()}
   $('#resetView').onclick=()=>{zoom=1; offset={x:0,y:0}; buildSVG()}
@@ -747,6 +760,7 @@
       noteDirty = false;
       cursor = null;
       if(projectNotesInput){ projectNotesInput.value = project.projectNotes; }
+      localStorage.removeItem('fps_single_project');
       save();
       renderList();
       buildSVG();
@@ -773,7 +787,7 @@
     const w=(maxX-minX)+pad*2, h=(maxY-minY)+pad*2;
     let svg=`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='${minX-pad} ${minY-pad} ${w} ${h}'>\n`;
     svg+=`<rect x='${minX-pad}' y='${minY-pad}' width='${w}' height='${h}' fill='white'/>\n`;
-    project.polygons.forEach(pol=>{ svg+=`<path d='${toPath(pol.points)}' fill='${pol.color}20' stroke='${pol.color}' stroke-width='2'/>\n`; if(project.scalePxPerUnit){ for(let i=0;i<pol.points.length;i++){ const a=pol.points[i], b=pol.points[(i+1)%pol.points.length]; if(!a||!b) continue; const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; const len=formatLength(dist(a,b)); svg+=`<text x='${mid.x}' y='${mid.y}' font-size='12' text-anchor='middle' fill='#111'>${len}</text>\n`; } } });
+    project.polygons.forEach(pol=>{ svg+=`<path d='${toPath(pol.points)}' fill='${pol.color}20' stroke='${pol.color}' stroke-width='2'/>\n`; for(let i=0;i<pol.points.length;i++){ const a=pol.points[i], b=pol.points[(i+1)%pol.points.length]; if(!a||!b) continue; const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; const len=formatLength(dist(a,b)); const label=(pol.labels[i]?.text||'').trim(); const text=[label,len].filter(Boolean).join(' • '); if(!text) continue; svg+=`<text x='${mid.x}' y='${mid.y}' font-size='12' text-anchor='middle' fill='#111'>${text}</text>\n`; } const areaPx=polygonArea(pol.points); if(areaPx){ const centre=polygonCentroid(pol.points); const areaText=`Area ${formatArea(areaPx)}`; svg+=`<text x='${centre.x}' y='${centre.y}' font-size='14' text-anchor='middle' fill='#111'>${areaText}</text>\n`; }});
     svg+='</svg>';
     download('floor-sketch.svg', svg, 'image/svg+xml');
   }
@@ -783,7 +797,9 @@
     const pad=40; let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity; project.polygons.forEach(pol=>pol.points.forEach(p=>{minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y);})); if(!isFinite(minX)) return alert('Nothing to export');
     const w=(maxX-minX)+pad*2, h=(maxY-minY)+pad*2; let svg=`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='${minX-pad} ${minY-pad} ${w} ${h}'>`;
     svg+=`<rect x='${minX-pad}' y='${minY-pad}' width='${w}' height='${h}' fill='white'/>`;
-    project.polygons.forEach(pol=>{ svg+=`<path d='${toPath(pol.points)}' fill='${pol.color}20' stroke='${pol.color}' stroke-width='2'/>` }); svg+='</svg>';
+    project.polygons.forEach(pol=>{ svg+=`<path d='${toPath(pol.points)}' fill='${pol.color}20' stroke='${pol.color}' stroke-width='2'/>`; for(let i=0;i<pol.points.length;i++){ const a=pol.points[i], b=pol.points[(i+1)%pol.points.length]; if(!a||!b) continue; const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; const len=formatLength(dist(a,b)); const label=(pol.labels[i]?.text||'').trim(); const text=[label,len].filter(Boolean).join(' • '); if(!text) continue; svg+=`<text x='${mid.x}' y='${mid.y}' font-size='12' text-anchor='middle' fill='#111'>${text}</text>`; } });
+    project.polygons.forEach(pol=>{ const areaPx=polygonArea(pol.points); if(!areaPx) return; const centre=polygonCentroid(pol.points); const areaText=`Area ${formatArea(areaPx)}`; svg+=`<text x='${centre.x}' y='${centre.y}' font-size='14' text-anchor='middle' fill='#111'>${areaText}</text>`; });
+    svg+='</svg>';
     const img=new Image(); const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));
     img.onload=()=>{const c=document.createElement('canvas'); c.width=img.width; c.height=img.height; const ctx=c.getContext('2d'); ctx.drawImage(img,0,0); c.toBlob(b=>{const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download='floor-sketch.png'; a.click(); URL.revokeObjectURL(u); URL.revokeObjectURL(url); },'image/png')}; img.src=url;
   }
@@ -837,7 +853,8 @@
   });
 
   // init
-  renderList(); buildSVG();
+  renderList();
+  uiTools();
 })();
 </script>
 </body>
