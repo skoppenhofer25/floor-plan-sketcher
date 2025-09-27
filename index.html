@@ -20,6 +20,11 @@
     #clearProjectBtn{border-color:#f87171;background:#fee2e2;color:#b91c1c}
     #clearProjectBtn:hover{background:#fecaca}
 
+
+    #clearProjectBtn{border-color:#f87171;background:#fee2e2;color:#b91c1c}
+    #clearProjectBtn:hover{background:#fecaca}
+
+
     .wrap{flex:1;display:flex;gap:.75rem;padding:.75rem;min-height:0}
     aside{width:300px;min-width:260px;background:var(--card);border-radius:16px;padding:.9rem;box-shadow:0 8px 30px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:.75rem;max-height:calc(100vh - 140px);overflow:auto}
     .panel{background:var(--card);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.06);position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:0}
@@ -241,9 +246,11 @@
         return formatFeetInches(units);
       }
 
+
   const formatLength = px => {
     if(project.scalePxPerUnit){
       const units = px/project.scalePxPerUnit;
+
 
       return `${units.toFixed(2)} ${project.unit}`;
     }
@@ -704,6 +711,25 @@
     cursor=null;
     buildSVG();
   }
+
+  function onWheel(e){
+    e.preventDefault();
+    if(!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const localX = e.clientX - rect.left;
+    const localY = e.clientY - rect.top;
+    const worldX = (localX - offset.x)/zoom;
+    const worldY = (localY - offset.y)/zoom;
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    const nextZoom = clamp(zoom*factor, .25, 8);
+    offset = {
+      x: localX - worldX*nextZoom,
+      y: localY - worldY*nextZoom
+    };
+    zoom = nextZoom;
+    buildSVG();
+  }
+
   function onWheel(e){ e.preventDefault(); const delta=-e.deltaY; const f=delta>0?1.1:0.9; const before=screenToWorld(e.clientX,e.clientY); zoom=clamp(zoom*f,.25,8); const after=screenToWorld(e.clientX,e.clientY); offset={x:offset.x+(after.x-before.x)*zoom,y:offset.y+(after.y-before.y)*zoom}; buildSVG(); }
 
   }
@@ -717,6 +743,7 @@
     buildSVG();
   }
   function onWheel(e){ const delta=-e.deltaY; const f=delta>0?1.1:0.9; const before=screenToWorld(e.clientX,e.clientY); zoom=clamp(zoom*f,.25,8); const after=screenToWorld(e.clientX,e.clientY); offset={x:offset.x+(after.x-before.x)*zoom,y:offset.y+(after.y-before.y)*zoom}; buildSVG(); }
+
 
   // Sidebar list
   function renderList(){
@@ -760,6 +787,7 @@
       'Pan mode. Drag to move view.';
     setStatusHint(hint,2500);
     buildSVG(); }
+
 
   $('#toolDraw').onclick=()=>{tool='draw'; setStatusHint('Drawing mode'); uiTools();}
   $('#toolEdit').onclick=()=>{tool='edit'; setStatusHint('Edit mode: drag vertices or notes'); uiTools();}
