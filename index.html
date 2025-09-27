@@ -16,8 +16,15 @@
     button:active{transform:translateY(1px)}
     button.on{background:var(--pri);border-color:var(--pri);color:#fff}
     label.btn{display:inline-flex;align-items:center;gap:.35rem}
+
     #clearProjectBtn{border-color:#f87171;background:#fee2e2;color:#b91c1c}
     #clearProjectBtn:hover{background:#fecaca}
+
+
+    #clearProjectBtn{border-color:#f87171;background:#fee2e2;color:#b91c1c}
+    #clearProjectBtn:hover{background:#fecaca}
+
+
     .wrap{flex:1;display:flex;gap:.75rem;padding:.75rem;min-height:0}
     aside{width:300px;min-width:260px;background:var(--card);border-radius:16px;padding:.9rem;box-shadow:0 8px 30px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:.75rem;max-height:calc(100vh - 140px);overflow:auto}
     .panel{background:var(--card);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.06);position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:0}
@@ -198,6 +205,7 @@
   let project = normalizeProject(load());
   let activeId = project.polygons[0]?.id;
   let dragIndex=null; let cursor=null; let dragNoteId=null; let noteOffset={x:0,y:0}; let noteDirty=false; let scalePick=null; let statusHint=''; let statusTimeout=null;
+
   const gcd = (a,b)=>b?gcd(b,a%b):Math.abs(a);
   function formatFeetInches(units){
     if(!isFinite(units)) return '0"';
@@ -237,6 +245,13 @@
       if(project.unit==='ft'){
         return formatFeetInches(units);
       }
+
+
+  const formatLength = px => {
+    if(project.scalePxPerUnit){
+      const units = px/project.scalePxPerUnit;
+
+
       return `${units.toFixed(2)} ${project.unit}`;
     }
     return `${px.toFixed(1)} px`;
@@ -682,6 +697,7 @@
     } else {
       buildSVG();
     }
+
   }
   function onUp(e){
     if(e && svg && typeof svg.releasePointerCapture==='function'){
@@ -695,6 +711,7 @@
     cursor=null;
     buildSVG();
   }
+
   function onWheel(e){
     e.preventDefault();
     if(!svg) return;
@@ -712,6 +729,21 @@
     zoom = nextZoom;
     buildSVG();
   }
+
+  function onWheel(e){ e.preventDefault(); const delta=-e.deltaY; const f=delta>0?1.1:0.9; const before=screenToWorld(e.clientX,e.clientY); zoom=clamp(zoom*f,.25,8); const after=screenToWorld(e.clientX,e.clientY); offset={x:offset.x+(after.x-before.x)*zoom,y:offset.y+(after.y-before.y)*zoom}; buildSVG(); }
+
+  }
+  function onUp(){
+    if(dragNoteId){
+      if(noteDirty){ save(); noteDirty=false; }
+      dragNoteId=null;
+    }
+    panning=false; dragIndex=null; panStart=null;
+    cursor=null;
+    buildSVG();
+  }
+  function onWheel(e){ const delta=-e.deltaY; const f=delta>0?1.1:0.9; const before=screenToWorld(e.clientX,e.clientY); zoom=clamp(zoom*f,.25,8); const after=screenToWorld(e.clientX,e.clientY); offset={x:offset.x+(after.x-before.x)*zoom,y:offset.y+(after.y-before.y)*zoom}; buildSVG(); }
+
 
   // Sidebar list
   function renderList(){
@@ -743,6 +775,7 @@
   }
 
   // Controls
+
   $('#toolDraw').onclick=()=>{tool='draw'; uiTools();}
   $('#toolEdit').onclick=()=>{tool='edit'; uiTools();}
   $('#toolNote').onclick=()=>{tool='note'; uiTools();}
@@ -754,6 +787,14 @@
       'Pan mode. Drag to move view.';
     setStatusHint(hint,2500);
     buildSVG(); }
+
+
+  $('#toolDraw').onclick=()=>{tool='draw'; setStatusHint('Drawing mode'); uiTools();}
+  $('#toolEdit').onclick=()=>{tool='edit'; setStatusHint('Edit mode: drag vertices or notes'); uiTools();}
+  $('#toolNote').onclick=()=>{tool='note'; setStatusHint('Tap anywhere on the plan to add a note'); uiTools();}
+  $('#toolPan').onclick=()=>{tool='pan'; setStatusHint('Pan mode'); uiTools();}
+  function uiTools(){ ['toolDraw','toolEdit','toolNote','toolPan'].forEach(id=>{const el=$('#'+id); if(el) el.classList.remove('on');}); const current=$('#tool'+cap(tool)); if(current) current.classList.add('on'); buildSVG(); }
+
   function cap(s){return s[0].toUpperCase()+s.slice(1)}
   $('#gridBtn').onclick=()=>{grid=!grid; $('#gridBtn').classList.toggle('on',grid); buildSVG()}
   $('#snapBtn').onclick=()=>{snap=!snap; $('#snapBtn').textContent=snap?'Snap 0/45/90':'Free Angle'; $('#snapBtn').classList.toggle('on',snap); const hint = snap? 'Snapping enabled. Hold Alt to temporarily disable.' : 'Free angle drawing. Hold Shift to temporarily snap.'; setStatusHint(hint,2500);}
@@ -764,6 +805,7 @@
 
   $('#setScaleBtn').onclick=()=>{ beginScalePick(); }
   $('#unitBtn').onclick=()=>{project.unit=project.unit==='ft'?'m':'ft'; if(unitBtn){unitBtn.textContent=project.unit.toUpperCase();} save(); buildSVG()}
+
   $('#clearProjectBtn').onclick=()=>{
     if(confirm('Clear the current project? This removes all rooms, notes, and scale.')){
       project = defaultProject();
