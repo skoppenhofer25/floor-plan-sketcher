@@ -5,23 +5,47 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Floor Plan Sketcher</title>
   <style>
-    :root{--ink:#111;--mut:#666;--bg:#f6f7fb;--card:#fff;--pri:#4f46e5}
-    *{box-sizing:border-box}html,body{height:100%}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu; background:var(--bg); color:var(--ink)}
-    header{position:sticky;top:0;background:rgba(255,255,255,.85);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #e5e7eb;padding:.5rem}
+    :root{--ink:#111;--mut:#666;--bg:#f6f7fb;--card:#fff;--pri:#4f46e5;--note:#0ea5e9}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu;background:var(--bg);color:var(--ink);display:flex;flex-direction:column;min-height:100vh}
+    header{position:sticky;top:0;z-index:10;background:rgba(255,255,255,.9);backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #e5e7eb;padding:.5rem .75rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
     .row{display:flex;gap:.5rem;align-items:center}
     .right{margin-left:auto}
-    button,label.btn{border:1px solid #d1d5db;border-radius:999px;background:#fff;padding:.4rem .7rem;cursor:pointer}
+    button,label.btn{border:1px solid #d1d5db;border-radius:999px;background:#fff;padding:.4rem .75rem;cursor:pointer;font:inherit;transition:background .2s,border-color .2s,color .2s;touch-action:manipulation}
+    button:active{transform:translateY(1px)}
     button.on{background:var(--pri);border-color:var(--pri);color:#fff}
-    .wrap{display:flex;gap:.75rem;padding:.75rem}
-    aside{width:280px;min-width:260px;background:var(--card);border-radius:16px;padding:.75rem;box-shadow:0 8px 30px rgba(0,0,0,.06)}
-    .panel{background:var(--card);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.06);position:relative;overflow:hidden}
-    .list{max-height:42vh;overflow:auto}
-    .item{border:1px solid #e5e7eb;border-radius:12px;padding:.4rem .5rem;margin:.35rem 0}
+    label.btn{display:inline-flex;align-items:center;gap:.35rem}
+    #clearProjectBtn{border-color:#f87171;background:#fee2e2;color:#b91c1c}
+    #clearProjectBtn:hover{background:#fecaca}
+    .wrap{flex:1;display:flex;gap:.75rem;padding:.75rem;min-height:0}
+    aside{width:300px;min-width:260px;background:var(--card);border-radius:16px;padding:.9rem;box-shadow:0 8px 30px rgba(0,0,0,.06);display:flex;flex-direction:column;gap:.75rem;max-height:calc(100vh - 140px);overflow:auto}
+    .panel{background:var(--card);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.06);position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:0}
+    .list{overflow:auto}
+    .item{border:1px solid #e5e7eb;border-radius:12px;padding:.45rem .6rem;margin:.35rem 0;display:flex;flex-direction:column;gap:.4rem}
     .item.active{border-color:#6366f1;background:#eef2ff}
     input.text{border:none;outline:none;font:inherit;width:100%;background:transparent}
-    .canvas{height:70vh}
-    .hud{position:absolute;left:8px;right:8px;bottom:8px;background:rgba(255,255,255,.92);border:1px solid #e5e7eb;border-radius:12px;padding:.3rem .5rem;display:flex;justify-content:space-between;align-items:center}
-    small.mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;color:#666}
+    .meta{color:var(--mut);font-size:.8rem}
+    .canvas{flex:1;min-height:60vh}
+    .hud{position:absolute;left:8px;right:8px;bottom:8px;background:rgba(255,255,255,.92);border:1px solid #e5e7eb;border-radius:12px;padding:.35rem .65rem;display:flex;justify-content:space-between;align-items:center;gap:.5rem;flex-wrap:wrap}
+    small.mono{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;color:#555;white-space:nowrap}
+    textarea.notes{width:100%;min-height:120px;border:1px solid #d1d5db;border-radius:12px;padding:.6rem;font:inherit;resize:vertical;background:#fff;box-shadow:inset 0 1px 2px rgba(15,23,42,.08)}
+    footer{color:#777;font-size:.8rem;padding:.5rem;text-align:center}
+
+    @media (max-width: 960px){
+      header{position:static;justify-content:flex-start}
+      .wrap{flex-direction:column}
+      aside{width:100%;max-height:initial;order:2}
+      .panel{order:1;height:auto}
+      .canvas{min-height:50vh}
+    }
+
+    @media (max-width:600px){
+      header{gap:.5rem}
+      button,label.btn{padding:.35rem .6rem;font-size:.9rem}
+      .wrap{padding:.5rem}
+      aside{padding:.75rem}
+    }
   </style>
 </head>
 <body>
@@ -30,6 +54,7 @@
     <div class="right row">
       <button id="toolDraw" class="on">Draw</button>
       <button id="toolEdit">Edit</button>
+      <button id="toolNote">Note</button>
       <button id="toolPan">Pan</button>
       <button id="gridBtn" class="on">Grid</button>
       <button id="snapBtn" class="on">Snap 0/45/90</button>
@@ -37,6 +62,7 @@
         <button id="setScaleBtn">Set Scale</button>
         <button id="unitBtn">FT</button>
       </span>
+      <button id="clearProjectBtn">Clear All</button>
       <span class="row" style="border-left:1px solid #e5e7eb;padding-left:.5rem;margin-left:.5rem">
         <button id="exportJsonBtn">Export JSON</button>
         <label class="btn">Import JSON<input id="importJson" type="file" accept="application/json" hidden></label>
@@ -59,10 +85,15 @@
         <ul style="margin:.25rem 0 .5rem 1rem;color:#555;font-size:.9rem;line-height:1.4">
           <li>Use <b>Draw</b> to place corners. Tap to add points.</li>
           <li>Use <b>Edit</b> to drag points. Hold <kbd>Shift</kbd> while dragging to snap.</li>
-          <li><b>Set Scale</b> with any two vertices once you know a real distance.</li>
+          <li>Select <b>Note</b> to drop callouts anywhere on the plan.</li>
+          <li><b>Set Scale</b> by tapping two vertices once you know a real distance.</li>
           <li>Use multiple shapes for different rooms/offices.</li>
           <li>Everything autosaves to your device.</li>
         </ul>
+      </div>
+      <div>
+        <div style="font-weight:600;margin-bottom:.25rem">Project Notes</div>
+        <textarea id="projectNotes" class="notes" placeholder="Site notes, materials, reminders..."></textarea>
       </div>
     </aside>
 
@@ -87,112 +118,543 @@
   const clamp = (v,min,max)=>Math.max(min,Math.min(max,v));
   const dist = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
   const snapVec = (dx,dy,snap45)=>{const a=Math.atan2(dy,dx);const step=snap45?Math.PI/4:Math.PI/2;const sn=Math.round(a/step)*step;const L=Math.hypot(dx,dy);return {x:Math.cos(sn)*L,y:Math.sin(sn)*L}};
+  const polygonPerimeter = pts => {
+    if(!pts || pts.length<2) return 0;
+    let p = 0;
+    for(let i=0;i<pts.length;i++){
+      const a=pts[i], b=pts[(i+1)%pts.length];
+      if(!a||!b) continue;
+      p += dist(a,b);
+    }
+    return p;
+  };
+  const polygonArea = pts => {
+    if(!pts || pts.length<3) return 0;
+    let sum = 0;
+    for(let i=0;i<pts.length;i++){
+      const a=pts[i], b=pts[(i+1)%pts.length];
+      if(!a||!b) continue;
+      sum += (a.x*b.y) - (b.x*a.y);
+    }
+    return Math.abs(sum)/2;
+  };
+  const polygonCentroid = pts => {
+    if(!pts || pts.length<3) return {x:0,y:0};
+    let area = 0, cx = 0, cy = 0;
+    for(let i=0;i<pts.length;i++){
+      const a=pts[i], b=pts[(i+1)%pts.length];
+      const f = (a.x*b.y - b.x*a.y);
+      area += f;
+      cx += (a.x + b.x) * f;
+      cy += (a.y + b.y) * f;
+    }
+    area *= 0.5;
+    if(!area) return {x:pts[0].x,y:pts[0].y};
+    const k = 1/(6*area);
+    return {x:cx*k, y:cy*k};
+  };
 
   // State
   let zoom=1, offset={x:0,y:0}, panning=false, panStart=null, offsetStart={x:0,y:0};
   let tool='draw', snap=true, grid=true;
-  let project = load() || {version:1, polygons:[{id:uid(), name:'Room 1', color:'#4f46e5', points:[], labels:[]}], scalePxPerUnit:null, unit:'ft'};
-  let activeId = project.polygons[0].id;
-  let dragIndex=null; let cursor=null;
+  const defaultProject = () => ({
+    version:2,
+    polygons:[{id:uid(), name:'Room 1', color:'#4f46e5', points:[], labels:[]}],
+    scalePxPerUnit:null,
+    unit:'ft',
+    notes:[],
+    projectNotes:''
+  });
+  function normalizeProject(data){
+    const base = defaultProject();
+    if(!data) return base;
+    const next = {...base, ...data};
+    next.version = 2;
+    const polys = Array.isArray(data.polygons)?data.polygons:base.polygons;
+    next.polygons = polys.map((pol,idx)=>{
+      const id = pol.id || uid();
+      const name = pol.name || `Room ${idx+1}`;
+      const color = pol.color || base.polygons[idx%base.polygons.length].color;
+      const points = Array.isArray(pol.points)?pol.points.map(p=>({x:+p.x||0,y:+p.y||0})):[];
+      const labels = Array.isArray(pol.labels)?pol.labels.map(l=>({text:l?.text||''})):points.map(()=>({text:''}));
+      return {id,name,color,points,labels};
+    });
+    if(!next.polygons.length){
+      next.polygons = base.polygons;
+    }
+    const activeIds = new Set(next.polygons.map(p=>p.id));
+    next.notes = Array.isArray(data.notes)?data.notes.map(n=>({
+      id:n.id||uid(),
+      text:n.text||'',
+      x:+n.x||0,
+      y:+n.y||0,
+      polyId:activeIds.has(n.polyId)?n.polyId:next.polygons[0].id
+    })).filter(n=>n.text.trim().length):[];
+    next.projectNotes = typeof data.projectNotes==='string'?data.projectNotes:base.projectNotes;
+    next.scalePxPerUnit = typeof data.scalePxPerUnit==='number' && isFinite(data.scalePxPerUnit) ? data.scalePxPerUnit : null;
+    next.unit = data.unit==='m'?'m':'ft';
+    return next;
+  }
+  let project = normalizeProject(load());
+  let activeId = project.polygons[0]?.id;
+  let dragIndex=null; let cursor=null; let dragNoteId=null; let noteOffset={x:0,y:0}; let noteDirty=false; let scalePick=null; let statusHint=''; let statusTimeout=null;
+  const gcd = (a,b)=>b?gcd(b,a%b):Math.abs(a);
+  function formatFeetInches(units){
+    if(!isFinite(units)) return '0"';
+    const totalInches = Math.round(units*12*8)/8; // nearest 1/8"
+    let feet = Math.floor(totalInches/12);
+    let inches = totalInches - feet*12;
+    let inchWhole = Math.floor(inches);
+    let inchFrac = Math.round((inches - inchWhole)*8);
+    if(inchFrac===8){
+      inchWhole += 1;
+      inchFrac = 0;
+    }
+    if(inchWhole>=12){
+      feet += Math.floor(inchWhole/12);
+      inchWhole = inchWhole % 12;
+    }
+    const inchPieces = [];
+    if(inchWhole){
+      inchPieces.push(String(inchWhole));
+    }
+    if(inchFrac){
+      const g = gcd(inchFrac,8);
+      inchPieces.push(`${inchFrac/g}/${8/g}`);
+    }
+    if(feet && !inchPieces.length){
+      return `${feet}'`;
+    }
+    if(!inchPieces.length){
+      inchPieces.push('0');
+    }
+    const joiner = feet ? '-' : ' ';
+    return `${feet?`${feet}'`:''}${feet?joiner:''}${inchPieces.join(' ')}"`;
+  }
+  const formatLength = px => {
+    if(project.scalePxPerUnit){
+      const units = px/project.scalePxPerUnit;
+      if(project.unit==='ft'){
+        return formatFeetInches(units);
+      }
+      return `${units.toFixed(2)} ${project.unit}`;
+    }
+    return `${px.toFixed(1)} px`;
+  };
+  const formatArea = px => {
+    if(project.scalePxPerUnit){
+      const units = px/(project.scalePxPerUnit*project.scalePxPerUnit);
+      return `${units.toFixed(2)} sq ${project.unit}`;
+    }
+    return `${px.toFixed(1)} px²`;
+  };
+  const NOTE_PADDING = 6;
+  const NOTE_LINE_HEIGHT = 14;
+  const NOTE_OFFSET_X = 12;
+  function noteMetrics(note){
+    const lines = note.text.split(/\r?\n/);
+    const longest = Math.max(...lines.map(l=>l.length),1);
+    const boxWidth = Math.max(60, longest*7 + NOTE_PADDING*2);
+    const boxHeight = lines.length*NOTE_LINE_HEIGHT + NOTE_PADDING*2;
+    return {lines,longest,boxWidth,boxHeight,offsetX:NOTE_OFFSET_X,offsetY:-boxHeight/2};
+  }
 
   // UI refs
-  const svgHost = $('#svgHost'); let svg;
+  const svgHost = $('#svgHost');
+  const projectNotesInput = $('#projectNotes');
+  if(projectNotesInput){
+    projectNotesInput.value = project.projectNotes;
+    projectNotesInput.addEventListener('input', ()=>{project.projectNotes = projectNotesInput.value; save();});
+  }
+  const unitBtn = $('#unitBtn');
+  if(unitBtn){ unitBtn.textContent = project.unit.toUpperCase(); }
+  let svg;
 
-  function save(){localStorage.setItem('fps_single_project', JSON.stringify(project))}
+  function save(){
+    project.version = 2;
+    localStorage.setItem('fps_single_project', JSON.stringify(project));
+  }
   function load(){try{return JSON.parse(localStorage.getItem('fps_single_project')||'')}catch{return null}}
 
   // Build SVG surface
   function buildSVG(){
     svgHost.innerHTML='';
-    svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
-    svg.setAttribute('width','100%'); svg.setAttribute('height','100%');
+    const ns='http://www.w3.org/2000/svg';
+    svg = document.createElementNS(ns,'svg');
+    svg.setAttribute('width','100%');
+    svg.setAttribute('height','100%');
     svg.style.touchAction='none';
 
-    // background
-    const bg = document.createElementNS(svg.namespaceURI,'rect');
-    bg.setAttribute('x',0); bg.setAttribute('y',0); bg.setAttribute('width','100%'); bg.setAttribute('height','100%');
+    const defs = document.createElementNS(ns,'defs');
+    if(grid){
+      const pat = document.createElementNS(ns,'pattern');
+      pat.setAttribute('id','grid');
+      pat.setAttribute('patternUnits','userSpaceOnUse');
+      const step = 40*zoom;
+      pat.setAttribute('width', step);
+      pat.setAttribute('height', step);
+      const ox = ((offset.x%step)+step)%step;
+      const oy = ((offset.y%step)+step)%step;
+      pat.setAttribute('patternTransform', `translate(${ox} ${oy})`);
+      const path = document.createElementNS(ns,'path');
+      path.setAttribute('d',`M ${step} 0 H 0 V ${step}`);
+      path.setAttribute('fill','none');
+      path.setAttribute('stroke','#e5e7eb');
+      path.setAttribute('stroke-width',1);
+      pat.appendChild(path);
+      defs.appendChild(pat);
+    }
+
+    const bg = document.createElementNS(ns,'rect');
+    bg.setAttribute('x',0);
+    bg.setAttribute('y',0);
+    bg.setAttribute('width','100%');
+    bg.setAttribute('height','100%');
     bg.setAttribute('fill', grid? 'url(#grid)':'#fafafa');
 
-    // defs grid
-    const defs = document.createElementNS(svg.namespaceURI,'defs');
-    const pat = document.createElementNS(svg.namespaceURI,'pattern');
-    pat.setAttribute('id','grid');
-    pat.setAttribute('patternUnits','userSpaceOnUse');
-    pat.setAttribute('width', 40*zoom); pat.setAttribute('height', 40*zoom);
-    const gp = document.createElementNS(svg.namespaceURI,'path');
-    gp.setAttribute('d',`M ${offset.x} 0 V 10000 M 0 ${offset.y} H 10000`);
-    gp.setAttribute('stroke','#e5e7eb'); gp.setAttribute('stroke-width','1');
-    pat.appendChild(gp); defs.appendChild(pat);
-
-    const g = document.createElementNS(svg.namespaceURI,'g');
+    const g = document.createElementNS(ns,'g');
     g.setAttribute('transform',`translate(${offset.x},${offset.y}) scale(${zoom})`);
 
-    svg.appendChild(defs); svg.appendChild(bg); svg.appendChild(g);
+    svg.appendChild(defs);
+    svg.appendChild(bg);
+    svg.appendChild(g);
+    svgHost.appendChild(svg);
 
-    // draw polys
+    const ap = activePoly();
+
     project.polygons.forEach(pol=>{
-      const path = document.createElementNS(svg.namespaceURI,'path');
+      while(pol.labels.length<pol.points.length) pol.labels.push({text:''});
+      if(pol.labels.length>pol.points.length) pol.labels.length=pol.points.length;
+
+      const path = document.createElementNS(ns,'path');
       path.setAttribute('d', toPath(pol.points));
-      path.setAttribute('fill', pol.color+'22');
-      path.setAttribute('stroke', pol.color); path.setAttribute('stroke-width', 2/zoom);
+      path.setAttribute('fill', pol.id===activeId ? pol.color+'33' : pol.color+'18');
+      path.setAttribute('stroke', pol.color);
+      path.setAttribute('stroke-width', 2/zoom);
+      path.setAttribute('stroke-linejoin','round');
       g.appendChild(path);
 
-      pol.points.forEach((p,i)=>{
-        const c = document.createElementNS(svg.namespaceURI,'circle');
-        c.setAttribute('cx',p.x); c.setAttribute('cy',p.y); c.setAttribute('r', 6/zoom);
-        c.setAttribute('fill','#fff'); c.setAttribute('stroke', pol.id===activeId?'#111':'#777'); c.setAttribute('stroke-width',1/zoom);
+      pol.points.forEach((p)=>{
+        const c = document.createElementNS(ns,'circle');
+        c.setAttribute('cx',p.x);
+        c.setAttribute('cy',p.y);
+        c.setAttribute('r', 6/zoom);
+        c.setAttribute('fill','#fff');
+        c.setAttribute('stroke', pol.id===activeId?'#111':'#777');
+        c.setAttribute('stroke-width',1/zoom);
         g.appendChild(c);
       });
 
-      // edge labels & dims
       for(let i=0;i<pol.points.length;i++){
-        const a=pol.points[i], b=pol.points[(i+1)%pol.points.length]; if(!a||!b) continue;
+        const a=pol.points[i], b=pol.points[(i+1)%pol.points.length];
+        if(!a||!b) continue;
         const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2};
-        const len = project.scalePxPerUnit? (dist(a,b)/project.scalePxPerUnit).toFixed(2)+' '+project.unit : '';
-        const text = [pol.labels[i]?.text||'', len].filter(Boolean).join(' • ');
-        if(text){
-          const t = document.createElementNS(svg.namespaceURI,'text');
-          t.setAttribute('x',mid.x); t.setAttribute('y',mid.y); t.setAttribute('font-size', 12/zoom);
-          t.setAttribute('text-anchor','middle'); t.setAttribute('fill','#111');
-          t.textContent = text; g.appendChild(t);
+        const labelText = (pol.labels[i]?.text||'').trim();
+        const lengthText = formatLength(dist(a,b));
+        const display = [labelText, lengthText].filter(Boolean).join(' • ');
+        if(display){
+          const t = document.createElementNS(ns,'text');
+          t.setAttribute('x',mid.x);
+          t.setAttribute('y',mid.y);
+          t.setAttribute('font-size', 12/zoom);
+          t.setAttribute('text-anchor','middle');
+          t.setAttribute('fill','#111');
+          t.setAttribute('stroke','#fff');
+          t.setAttribute('stroke-width',3/zoom);
+          t.setAttribute('paint-order','stroke fill');
+          t.setAttribute('pointer-events','none');
+          t.textContent = display;
+          g.appendChild(t);
         }
+      }
+
+      const areaPx = polygonArea(pol.points);
+      if(areaPx){
+        const centre = polygonCentroid(pol.points);
+        const areaText = `Area ${formatArea(areaPx)}`;
+        const t = document.createElementNS(ns,'text');
+        t.setAttribute('x', centre.x);
+        t.setAttribute('y', centre.y);
+        t.setAttribute('font-size', 14/zoom);
+        t.setAttribute('text-anchor','middle');
+        t.setAttribute('dominant-baseline','middle');
+        t.setAttribute('fill','#1f2937');
+        t.setAttribute('stroke','#fff');
+        t.setAttribute('stroke-width',4/zoom);
+        t.setAttribute('paint-order','stroke fill');
+        t.setAttribute('pointer-events','none');
+        t.textContent = areaText;
+        g.appendChild(t);
       }
     });
 
-    // live preview segment
-    const ap = activePoly();
+    if(scalePick?.first){
+      const mark = document.createElementNS(ns,'circle');
+      mark.setAttribute('cx', scalePick.first.point.x);
+      mark.setAttribute('cy', scalePick.first.point.y);
+      mark.setAttribute('r', 10/zoom);
+      mark.setAttribute('fill','none');
+      mark.setAttribute('stroke','#0ea5e9');
+      mark.setAttribute('stroke-width',2/zoom);
+      mark.setAttribute('stroke-dasharray','4 2');
+      g.appendChild(mark);
+    }
+
+    project.notes.forEach(note=>{
+      const metrics = noteMetrics(note);
+      const {lines, boxWidth, boxHeight, offsetX, offsetY} = metrics;
+      const color = note.polyId===activeId ? '#0ea5e9' : '#64748b';
+
+      const group = document.createElementNS(ns,'g');
+      group.dataset.noteId = note.id;
+      group.style.cursor = 'move';
+
+      const anchor = document.createElementNS(ns,'circle');
+      anchor.setAttribute('cx', note.x);
+      anchor.setAttribute('cy', note.y);
+      anchor.setAttribute('r', 4/zoom);
+      anchor.setAttribute('fill', color);
+      anchor.setAttribute('stroke','#fff');
+      anchor.setAttribute('stroke-width',2/zoom);
+      group.appendChild(anchor);
+
+      const rect = document.createElementNS(ns,'rect');
+      rect.setAttribute('x', note.x + offsetX);
+      rect.setAttribute('y', note.y + offsetY);
+      rect.setAttribute('width', boxWidth);
+      rect.setAttribute('height', boxHeight);
+      rect.setAttribute('rx', 6/zoom);
+      rect.setAttribute('ry', 6/zoom);
+      rect.setAttribute('fill','#fff');
+      rect.setAttribute('stroke', color);
+      rect.setAttribute('stroke-width',1/zoom);
+      rect.setAttribute('opacity','0.95');
+      group.appendChild(rect);
+
+      const textEl = document.createElementNS(ns,'text');
+      textEl.setAttribute('font-size',12/zoom);
+      textEl.setAttribute('fill','#111');
+      textEl.setAttribute('pointer-events','none');
+      for(let i=0;i<lines.length;i++){
+        const span = document.createElementNS(ns,'tspan');
+        span.setAttribute('x', note.x + offsetX + NOTE_PADDING);
+        span.setAttribute('y', note.y + offsetY + NOTE_PADDING + (i+1)*NOTE_LINE_HEIGHT);
+        span.textContent = lines[i] || ' ';
+        textEl.appendChild(span);
+      }
+      group.appendChild(textEl);
+
+      g.appendChild(group);
+    });
+
     if(tool==='draw' && ap && cursor && ap.points.length>0){
       const last = ap.points[ap.points.length-1];
       const v = {x:cursor.x-last.x, y:cursor.y-last.y};
       const s = snap? snapVec(v.x,v.y,true):v;
-      const line = document.createElementNS(svg.namespaceURI,'line');
-      line.setAttribute('x1',last.x); line.setAttribute('y1',last.y);
-      line.setAttribute('x2', last.x+s.x); line.setAttribute('y2', last.y+s.y);
-      line.setAttribute('stroke','#111'); line.setAttribute('stroke-dasharray','4 4'); line.setAttribute('stroke-width',1/zoom);
+      const to = {x:last.x+s.x,y:last.y+s.y};
+      const line = document.createElementNS(ns,'line');
+      line.setAttribute('x1',last.x);
+      line.setAttribute('y1',last.y);
+      line.setAttribute('x2', to.x);
+      line.setAttribute('y2', to.y);
+      line.setAttribute('stroke','#111');
+      line.setAttribute('stroke-dasharray','6 4');
+      line.setAttribute('stroke-width',1/zoom);
       g.appendChild(line);
+
+      const previewLen = dist(last,to);
+      const previewText = formatLength(previewLen);
+      if(previewLen>0.5){
+        const label = document.createElementNS(ns,'text');
+        label.setAttribute('x',(last.x+to.x)/2);
+        label.setAttribute('y',(last.y+to.y)/2);
+        label.setAttribute('font-size',12/zoom);
+        label.setAttribute('text-anchor','middle');
+        label.setAttribute('fill','#111');
+        label.setAttribute('stroke','#fff');
+        label.setAttribute('stroke-width',3/zoom);
+        label.setAttribute('paint-order','stroke fill');
+        label.setAttribute('pointer-events','none');
+        label.textContent = previewText;
+        g.appendChild(label);
+      }
     }
 
-    // pointer handlers
-    svg.onpointerdown = onDown; svg.onpointermove = onMove; svg.onpointerup = onUp; svg.onwheel = onWheel;
-    $('#status').textContent = `Zoom: ${(zoom*100).toFixed(0)}% | Offset: ${offset.x|0}, ${offset.y|0} ${project.scalePxPerUnit?`| Scale 1 ${project.unit} = ${project.scalePxPerUnit.toFixed(2)} px`:''}`;
+    svg.onpointerdown = onDown;
+    svg.onpointermove = onMove;
+    svg.onpointerup = onUp;
+    svg.onpointerleave = onUp;
+    svg.onwheel = onWheel;
+
+    updateStatus();
   }
 
   function toPath(pts){ if(!pts.length) return ''; return 'M '+pts.map(p=>`${p.x} ${p.y}`).join(' L ')+' Z'; }
-  function screenToWorld(x,y){return {x:(x-offset.x)/zoom, y:(y-offset.y)/zoom}}
+  function snapEnabled(e){
+    if(!e) return snap;
+    if(snap){
+      return !(e.altKey||e.metaKey||e.ctrlKey);
+    }
+    return !!(e.shiftKey||e.metaKey||e.ctrlKey);
+  }
+  function screenToWorld(x,y){
+    const rect = (svg||svgHost).getBoundingClientRect();
+    const localX = x - rect.left;
+    const localY = y - rect.top;
+    return {x:(localX-offset.x)/zoom, y:(localY-offset.y)/zoom};
+  }
 
   function activePoly(){return project.polygons.find(p=>p.id===activeId)}
   function updateActive(patch){project.polygons = project.polygons.map(p=>p.id===activeId?{...p,...patch}:p); save(); buildSVG(); renderList();}
+  function updateStatus(){
+    const pieces = [];
+    if(statusHint) pieces.push(statusHint);
+    pieces.push(`Zoom ${(zoom*100).toFixed(0)}%`);
+    pieces.push(`Offset ${Math.round(offset.x)}, ${Math.round(offset.y)}`);
+    if(project.scalePxPerUnit){
+      pieces.push(`Scale 1 ${project.unit} = ${project.scalePxPerUnit.toFixed(2)} px`);
+    } else {
+      pieces.push('Scale not set');
+    }
+    const ap = activePoly();
+    if(ap){
+      const per = polygonPerimeter(ap.points);
+      if(per) pieces.push(`Perim ${formatLength(per)}`);
+      const area = polygonArea(ap.points);
+      if(area) pieces.push(`Area ${formatArea(area)}`);
+    }
+    $('#status').textContent = pieces.join(' • ');
+  }
+  function setStatusHint(message, ttlMs=0){
+    statusHint = message||'';
+    if(statusTimeout){
+      clearTimeout(statusTimeout);
+      statusTimeout=null;
+    }
+    updateStatus();
+    if(ttlMs>0 && message){
+      statusTimeout = setTimeout(()=>{
+        statusHint='';
+        statusTimeout=null;
+        updateStatus();
+      }, ttlMs);
+    }
+  }
+  function beginScalePick(){
+    const ap = activePoly();
+    if(!ap || ap.points.length<2){
+      alert('Draw at least 2 points first');
+      return;
+    }
+    scalePick = {first:null};
+    setStatusHint('Tap the first vertex to set the scale');
+    buildSVG();
+  }
+  function handleScalePick(pt){
+    const ap = activePoly();
+    if(!ap){
+      scalePick=null;
+      setStatusHint('No active shape to scale',2000);
+      return true;
+    }
+    const idx = hitVertex(ap,pt);
+    if(idx==null){
+      scalePick=null;
+      setStatusHint('Scale cancelled',2000);
+      buildSVG();
+      return true;
+    }
+    if(!scalePick.first){
+      scalePick.first={index:idx, point:ap.points[idx]};
+      setStatusHint(`Point ${idx} selected. Tap the second vertex.`,0);
+      buildSVG();
+      return true;
+    }
+    if(scalePick.first.index===idx){
+      setStatusHint('Pick a different vertex',2000);
+      return true;
+    }
+    const dpx = dist(scalePick.first.point, ap.points[idx]);
+    if(!dpx){
+      setStatusHint('Vertices overlap. Choose another pair.',2000);
+      return true;
+    }
+    const val = prompt(`Measured distance between points ${scalePick.first.index} and ${idx} in ${project.unit}:`, '');
+    if(val==null){
+      scalePick=null;
+      setStatusHint('Scale cancelled',2000);
+      buildSVG();
+      return true;
+    }
+    const units = Math.abs(parseFloat(val));
+    if(!units || !isFinite(units)){
+      alert('Please enter a numeric distance.');
+      setStatusHint('Scale not updated',2000);
+      scalePick=null;
+      buildSVG();
+      return true;
+    }
+    project.scalePxPerUnit = dpx/units;
+    save();
+    scalePick=null;
+    setStatusHint(`Scale updated: 1 ${project.unit} = ${(project.scalePxPerUnit).toFixed(2)} px`,3000);
+    buildSVG();
+    return true;
+  }
 
   function hitVertex(poly,pt){const thr=10/zoom; for(let i=0;i<poly.points.length;i++){ if(dist(poly.points[i],pt)<thr) return i;} return null;}
+  function hitNote(pt){
+    const thr = 12/zoom;
+    for(const note of project.notes){
+      const metrics = noteMetrics(note);
+      const {offsetX, offsetY, boxWidth, boxHeight} = metrics;
+      const x1 = note.x + offsetX;
+      const y1 = note.y + offsetY;
+      const x2 = x1 + boxWidth;
+      const y2 = y1 + boxHeight;
+      if(pt.x>=x1 && pt.x<=x2 && pt.y>=y1 && pt.y<=y2){
+        return {note, hit:'box'};
+      }
+      if(dist({x:note.x,y:note.y},pt)<thr){
+        return {note, hit:'anchor'};
+      }
+    }
+    return null;
+  }
 
   // pointer logic
   function onDown(e){
+    e.preventDefault();
+    if(typeof e.button==='number' && e.button!==0) return;
+    if(svg && typeof svg.setPointerCapture==='function'){
+      svg.setPointerCapture(e.pointerId);
+    }
     const pt = screenToWorld(e.clientX,e.clientY);
+    if(scalePick){ handleScalePick(pt); return; }
     if(tool==='pan'){panning=true; panStart={x:e.clientX,y:e.clientY}; offsetStart={...offset}; return}
+    if(tool==='note'){
+      const text = prompt('Note text:', '');
+      if(text && text.trim()){
+        project.notes.push({id:uid(), text:text.trim(), x:pt.x, y:pt.y, polyId:activeId});
+        save();
+        renderList();
+        setStatusHint('Note added',1500);
+        buildSVG();
+      }
+      return;
+    }
+    if(tool==='edit'){
+      const hit = hitNote(pt);
+      if(hit){
+        dragNoteId = hit.note.id;
+        noteOffset = {x:hit.note.x - pt.x, y:hit.note.y - pt.y};
+        return;
+      }
+    }
     const ap = activePoly(); if(!ap) return;
     if(tool==='draw'){
       let newPt={...pt};
-      if(ap.points.length){const last=ap.points[ap.points.length-1]; const v={x:pt.x-last.x,y:pt.y-last.y}; const s=snap?snapVec(v.x,v.y,true):v; newPt={x:last.x+s.x,y:last.y+s.y}}
+      if(ap.points.length){const last=ap.points[ap.points.length-1]; const v={x:pt.x-last.x,y:pt.y-last.y}; const useSnap=snapEnabled(e); const s=useSnap?snapVec(v.x,v.y,true):v; newPt={x:last.x+s.x,y:last.y+s.y}}
       const labels=ap.labels.slice(); if(labels.length<ap.points.length+1) labels.push({text:''});
       updateActive({points:[...ap.points,newPt], labels}); dragIndex=ap.points.length;
     } else if(tool==='edit'){
@@ -200,16 +662,56 @@
     }
   }
   function onMove(e){
+    e.preventDefault();
     const pt = screenToWorld(e.clientX,e.clientY); cursor=pt;
     if(panning && panStart){ const dx=e.clientX-panStart.x, dy=e.clientY-panStart.y; offset={x:offsetStart.x+dx,y:offsetStart.y+dy}; buildSVG(); return }
-    const ap=activePoly(); if(!ap) return;
+    if(dragNoteId){
+      const note = project.notes.find(n=>n.id===dragNoteId);
+      if(note){
+        note.x = pt.x + noteOffset.x;
+        note.y = pt.y + noteOffset.y;
+        noteDirty = true;
+        buildSVG();
+      }
+      return;
+    }
+    const ap=activePoly(); if(!ap){ buildSVG(); return; }
     if(dragIndex!=null){
-      const pts=ap.points.slice(); let np={...pt}; if(snap && e.shiftKey){ const prev=pts[(dragIndex-1+pts.length)%pts.length]||pts[dragIndex]; const v={x:pt.x-prev.x,y:pt.y-prev.y}; const s=snapVec(v.x,v.y,true); np={x:prev.x+s.x,y:prev.y+s.y}; }
+      const pts=ap.points.slice(); let np={...pt}; const useSnap=snapEnabled(e); if(useSnap){ const prev=pts[(dragIndex-1+pts.length)%pts.length]||pts[dragIndex]; const v={x:pt.x-prev.x,y:pt.y-prev.y}; const s=snapVec(v.x,v.y,true); np={x:prev.x+s.x,y:prev.y+s.y}; }
       pts[dragIndex]=np; updateActive({points:pts});
-    } else { buildSVG(); }
+    } else {
+      buildSVG();
+    }
   }
-  function onUp(){ panning=false; dragIndex=null; panStart=null }
-  function onWheel(e){ const delta=-e.deltaY; const f=delta>0?1.1:0.9; const before=screenToWorld(e.clientX,e.clientY); zoom=clamp(zoom*f,.25,8); const after=screenToWorld(e.clientX,e.clientY); offset={x:offset.x+(after.x-before.x)*zoom,y:offset.y+(after.y-before.y)*zoom}; buildSVG(); }
+  function onUp(e){
+    if(e && svg && typeof svg.releasePointerCapture==='function'){
+      svg.releasePointerCapture(e.pointerId);
+    }
+    if(dragNoteId){
+      if(noteDirty){ save(); noteDirty=false; }
+      dragNoteId=null;
+    }
+    panning=false; dragIndex=null; panStart=null;
+    cursor=null;
+    buildSVG();
+  }
+  function onWheel(e){
+    e.preventDefault();
+    if(!svg) return;
+    const rect = svg.getBoundingClientRect();
+    const localX = e.clientX - rect.left;
+    const localY = e.clientY - rect.top;
+    const worldX = (localX - offset.x)/zoom;
+    const worldY = (localY - offset.y)/zoom;
+    const factor = e.deltaY < 0 ? 1.1 : 0.9;
+    const nextZoom = clamp(zoom*factor, .25, 8);
+    offset = {
+      x: localX - worldX*nextZoom,
+      y: localY - worldY*nextZoom
+    };
+    zoom = nextZoom;
+    buildSVG();
+  }
 
   // Sidebar list
   function renderList(){
@@ -220,9 +722,20 @@
       const input=d.querySelector('input'); input.oninput=()=>{pol.name=input.value; save()};
       d.onclick=()=>{activeId=pol.id; buildSVG(); renderList()};
       if(pol.id===activeId){
+        const meta=document.createElement('div');
+        meta.className='meta';
+        const info=[];
+        const per = polygonPerimeter(pol.points);
+        if(per) info.push(`Perim ${formatLength(per)}`);
+        const area = polygonArea(pol.points);
+        if(area) info.push(`Area ${formatArea(area)}`);
+        const noteCount = project.notes.filter(n=>n.polyId===pol.id).length;
+        if(noteCount) info.push(`${noteCount} note${noteCount===1?'':'s'}`);
+        meta.textContent = info.length?info.join(' • '):'No measurements yet';
+        d.appendChild(meta);
         const bar=document.createElement('div'); bar.className='row'; bar.style.marginTop='.35rem';
-        const undo=document.createElement('button'); undo.textContent='Undo Last Point'; undo.onclick=()=>{const ap=activePoly(); if(!ap)return; ap.points.pop(); ap.labels.pop(); save(); buildSVG();};
-        const del=document.createElement('button'); del.textContent='Delete'; del.onclick=()=>{project.polygons=project.polygons.filter(x=>x.id!==pol.id); if(!project.polygons.length){project.polygons=[{id:uid(),name:'Room 1',color:'#4f46e5',points:[],labels:[]}]}; activeId=project.polygons[0].id; save(); buildSVG(); renderList(); };
+        const undo=document.createElement('button'); undo.textContent='Undo Last Point'; undo.onclick=()=>{const ap=activePoly(); if(!ap)return; ap.points.pop(); ap.labels.pop(); save(); buildSVG(); renderList();};
+        const del=document.createElement('button'); del.textContent='Delete'; del.onclick=()=>{project.notes=project.notes.filter(n=>n.polyId!==pol.id); project.polygons=project.polygons.filter(x=>x.id!==pol.id); if(!project.polygons.length){project.polygons=[{id:uid(),name:'Room 1',color:'#4f46e5',points:[],labels:[]}]}; activeId=project.polygons[0].id; save(); buildSVG(); renderList(); };
         bar.appendChild(undo); bar.appendChild(del); d.appendChild(bar);
       }
       list.appendChild(d);
@@ -230,36 +743,67 @@
   }
 
   // Controls
-  $('#toolDraw').onclick=()=>{tool='draw'; uiTools()}
-  $('#toolEdit').onclick=()=>{tool='edit'; uiTools()}
-  $('#toolPan').onclick=()=>{tool='pan'; uiTools()}
-  function uiTools(){ ['toolDraw','toolEdit','toolPan'].forEach(id=>$('#'+id).classList.remove('on')); $('#tool'+cap(tool)).classList.add('on'); }
+  $('#toolDraw').onclick=()=>{tool='draw'; uiTools();}
+  $('#toolEdit').onclick=()=>{tool='edit'; uiTools();}
+  $('#toolNote').onclick=()=>{tool='note'; uiTools();}
+  $('#toolPan').onclick=()=>{tool='pan'; uiTools();}
+  function uiTools(){ ['toolDraw','toolEdit','toolNote','toolPan'].forEach(id=>{const el=$('#'+id); if(el) el.classList.remove('on');}); const current=$('#tool'+cap(tool)); if(current) current.classList.add('on'); const hint =
+      tool==='draw' ? (snap? 'Draw mode. Hold Alt to freehand.' : 'Draw mode. Hold Shift to snap 45°.') :
+      tool==='edit' ? (snap? 'Edit mode. Hold Alt to freehand drag.' : 'Edit mode. Hold Shift to snap drag.') :
+      tool==='note' ? 'Note mode. Click to drop callouts.' :
+      'Pan mode. Drag to move view.';
+    setStatusHint(hint,2500);
+    buildSVG(); }
   function cap(s){return s[0].toUpperCase()+s.slice(1)}
   $('#gridBtn').onclick=()=>{grid=!grid; $('#gridBtn').classList.toggle('on',grid); buildSVG()}
-  $('#snapBtn').onclick=()=>{snap=!snap; $('#snapBtn').textContent=snap?'Snap 0/45/90':'Free Angle'; $('#snapBtn').classList.toggle('on',snap)}
+  $('#snapBtn').onclick=()=>{snap=!snap; $('#snapBtn').textContent=snap?'Snap 0/45/90':'Free Angle'; $('#snapBtn').classList.toggle('on',snap); const hint = snap? 'Snapping enabled. Hold Alt to temporarily disable.' : 'Free angle drawing. Hold Shift to temporarily snap.'; setStatusHint(hint,2500);}
   $('#zoomIn').onclick=()=>{zoom=clamp(zoom*1.1,.25,8); buildSVG()}
   $('#zoomOut').onclick=()=>{zoom=clamp(zoom*0.9,.25,8); buildSVG()}
   $('#resetView').onclick=()=>{zoom=1; offset={x:0,y:0}; buildSVG()}
   $('#addPoly').onclick=()=>{const c=['#4f46e5','#14b8a6','#f59e0b','#ef4444','#22c55e','#a855f7']; const col=c[Math.floor(Math.random()*c.length)]; const np={id:uid(),name:'Room '+(project.polygons.length+1),color:col,points:[],labels:[]}; project.polygons.push(np); activeId=np.id; save(); renderList(); buildSVG();}
 
-  $('#setScaleBtn').onclick=()=>{
-    const ap=activePoly(); if(!ap||ap.points.length<2) return alert('Draw at least 2 points first');
-    const i=prompt('First vertex index (0-based)'); const j=prompt('Second vertex index (0-based)');
-    if(i==null||j==null) return; const I=+i,J=+j; if(Number.isNaN(I)||Number.isNaN(J)) return;
-    const dpx=dist(ap.points[I],ap.points[J]); const val=prompt(`Measured distance between ${I} and ${J} in ${project.unit}:`); if(!val) return; const units=+val; if(!units||!dpx) return; project.scalePxPerUnit=dpx/units; save(); buildSVG();
+  $('#setScaleBtn').onclick=()=>{ beginScalePick(); }
+  $('#unitBtn').onclick=()=>{project.unit=project.unit==='ft'?'m':'ft'; if(unitBtn){unitBtn.textContent=project.unit.toUpperCase();} save(); buildSVG()}
+  $('#clearProjectBtn').onclick=()=>{
+    if(confirm('Clear the current project? This removes all rooms, notes, and scale.')){
+      project = defaultProject();
+      activeId = project.polygons[0]?.id;
+      zoom = 1;
+      offset = {x:0,y:0};
+      scalePick = null;
+      dragIndex = null;
+      dragNoteId = null;
+      noteDirty = false;
+      cursor = null;
+      if(projectNotesInput){ projectNotesInput.value = project.projectNotes; }
+      localStorage.removeItem('fps_single_project');
+      save();
+      renderList();
+      buildSVG();
+      setStatusHint('Project reset',2000);
+    }
   }
-  $('#unitBtn').onclick=()=>{project.unit=project.unit==='ft'?'m':'ft'; $('#unitBtn').textContent=project.unit.toUpperCase(); save(); buildSVG()}
 
   function download(name,data,type){const blob=new Blob([data],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=name; a.click(); URL.revokeObjectURL(url)}
   $('#exportJsonBtn').onclick=()=>download('floor-sketch.json', JSON.stringify(project,null,2), 'application/json')
-  $('#importJson').onchange=e=>{const f=e.target.files&&e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{try{project=JSON.parse(r.result); activeId=project.polygons[0]?.id||activeId; save(); renderList(); buildSVG();}catch{alert('Invalid JSON')}}; r.readAsText(f)}
+  $('#importJson').onchange=e=>{const f=e.target.files&&e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{try{project=normalizeProject(JSON.parse(r.result)); activeId=project.polygons[0]?.id||activeId; if(projectNotesInput){projectNotesInput.value=project.projectNotes;} $('#unitBtn').textContent=project.unit.toUpperCase(); save(); renderList(); buildSVG();}catch{alert('Invalid JSON')}}; r.readAsText(f)}
+
+  window.addEventListener('keydown', e=>{
+    if(e.key==='Escape'){
+      if(scalePick){
+        scalePick=null;
+        setStatusHint('Scale cancelled',1500);
+        buildSVG();
+      }
+    }
+  });
 
   $('#exportSvgBtn').onclick=()=>{
     const pad=40; let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity; project.polygons.forEach(pol=>pol.points.forEach(p=>{minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y);})); if(!isFinite(minX)) return alert('Nothing to export');
     const w=(maxX-minX)+pad*2, h=(maxY-minY)+pad*2;
     let svg=`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='${minX-pad} ${minY-pad} ${w} ${h}'>\n`;
     svg+=`<rect x='${minX-pad}' y='${minY-pad}' width='${w}' height='${h}' fill='white'/>\n`;
-    project.polygons.forEach(pol=>{ svg+=`<path d='${toPath(pol.points)}' fill='${pol.color}20' stroke='${pol.color}' stroke-width='2'/>\n`; if(project.scalePxPerUnit){ for(let i=0;i<pol.points.length;i++){ const a=pol.points[i], b=pol.points[(i+1)%pol.points.length]; if(!a||!b) continue; const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; const len=(dist(a,b)/project.scalePxPerUnit).toFixed(2)+' '+project.unit; svg+=`<text x='${mid.x}' y='${mid.y}' font-size='12' text-anchor='middle' fill='#111'>${len}</text>\n`; } } });
+    project.polygons.forEach(pol=>{ svg+=`<path d='${toPath(pol.points)}' fill='${pol.color}20' stroke='${pol.color}' stroke-width='2'/>\n`; for(let i=0;i<pol.points.length;i++){ const a=pol.points[i], b=pol.points[(i+1)%pol.points.length]; if(!a||!b) continue; const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; const len=formatLength(dist(a,b)); const label=(pol.labels[i]?.text||'').trim(); const text=[label,len].filter(Boolean).join(' • '); if(!text) continue; svg+=`<text x='${mid.x}' y='${mid.y}' font-size='12' text-anchor='middle' fill='#111'>${text}</text>\n`; } const areaPx=polygonArea(pol.points); if(areaPx){ const centre=polygonCentroid(pol.points); const areaText=`Area ${formatArea(areaPx)}`; svg+=`<text x='${centre.x}' y='${centre.y}' font-size='14' text-anchor='middle' fill='#111'>${areaText}</text>\n`; }});
     svg+='</svg>';
     download('floor-sketch.svg', svg, 'image/svg+xml');
   }
@@ -269,19 +813,64 @@
     const pad=40; let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity; project.polygons.forEach(pol=>pol.points.forEach(p=>{minX=Math.min(minX,p.x);minY=Math.min(minY,p.y);maxX=Math.max(maxX,p.x);maxY=Math.max(maxY,p.y);})); if(!isFinite(minX)) return alert('Nothing to export');
     const w=(maxX-minX)+pad*2, h=(maxY-minY)+pad*2; let svg=`<svg xmlns='http://www.w3.org/2000/svg' width='${w}' height='${h}' viewBox='${minX-pad} ${minY-pad} ${w} ${h}'>`;
     svg+=`<rect x='${minX-pad}' y='${minY-pad}' width='${w}' height='${h}' fill='white'/>`;
-    project.polygons.forEach(pol=>{ svg+=`<path d='${toPath(pol.points)}' fill='${pol.color}20' stroke='${pol.color}' stroke-width='2'/>` }); svg+='</svg>';
+    project.polygons.forEach(pol=>{ svg+=`<path d='${toPath(pol.points)}' fill='${pol.color}20' stroke='${pol.color}' stroke-width='2'/>`; for(let i=0;i<pol.points.length;i++){ const a=pol.points[i], b=pol.points[(i+1)%pol.points.length]; if(!a||!b) continue; const mid={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; const len=formatLength(dist(a,b)); const label=(pol.labels[i]?.text||'').trim(); const text=[label,len].filter(Boolean).join(' • '); if(!text) continue; svg+=`<text x='${mid.x}' y='${mid.y}' font-size='12' text-anchor='middle' fill='#111'>${text}</text>`; } });
+    project.polygons.forEach(pol=>{ const areaPx=polygonArea(pol.points); if(!areaPx) return; const centre=polygonCentroid(pol.points); const areaText=`Area ${formatArea(areaPx)}`; svg+=`<text x='${centre.x}' y='${centre.y}' font-size='14' text-anchor='middle' fill='#111'>${areaText}</text>`; });
+    svg+='</svg>';
     const img=new Image(); const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));
     img.onload=()=>{const c=document.createElement('canvas'); c.width=img.width; c.height=img.height; const ctx=c.getContext('2d'); ctx.drawImage(img,0,0); c.toBlob(b=>{const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download='floor-sketch.png'; a.click(); URL.revokeObjectURL(u); URL.revokeObjectURL(url); },'image/png')}; img.src=url;
   }
 
   // Edge label editing on click
   svgHost.addEventListener('click', (e)=>{
-    const ap=activePoly(); if(!ap) return; const pt=screenToWorld(e.clientX,e.clientY); let nearestIndex=-1; let best=Infinity; for(let i=0;i<ap.points.length;i++){ const a=ap.points[i], b=ap.points[(i+1)%ap.points.length]; const m={x:(a.x+b.x)/2,y:(a.y+b.y)/2}; const d=dist(m,pt); if(d<best){best=d; nearestIndex=i} }
-    if(best<20/zoom){ const cur=ap.labels[nearestIndex]?.text||''; const text=prompt('Edge label:',cur); if(text!=null){ ap.labels[nearestIndex]={text}; save(); buildSVG(); } }
+    const ap = activePoly();
+    if(!ap) return;
+    const pt = screenToWorld(e.clientX,e.clientY);
+    let nearestIndex = -1;
+    let best = Infinity;
+    for(let i=0;i<ap.points.length;i++){
+      const a = ap.points[i], b = ap.points[(i+1)%ap.points.length];
+      const m = {x:(a.x+b.x)/2, y:(a.y+b.y)/2};
+      const d = dist(m, pt);
+      if(d<best){ best = d; nearestIndex = i; }
+    }
+    if(best<20/zoom){
+      const cur = ap.labels[nearestIndex]?.text || '';
+      const text = prompt('Edge label:', cur);
+      if(text!=null){ ap.labels[nearestIndex] = {text}; save(); buildSVG(); }
+    }
+  });
+
+  svgHost.addEventListener('dblclick', (e)=>{
+    const pt = screenToWorld(e.clientX,e.clientY);
+    const hit = hitNote(pt);
+    if(hit){
+      e.preventDefault();
+      const current = hit.note.text;
+      const text = prompt('Edit note (leave blank to remove):', current);
+      if(text==null) return;
+      if(text.trim()){
+        hit.note.text = text.trim();
+      } else {
+        project.notes = project.notes.filter(n=>n.id!==hit.note.id);
+      }
+      save();
+      buildSVG();
+      renderList();
+    } else if(tool==='note'){
+      const text = prompt('Note text:', '');
+      if(text && text.trim()){
+        project.notes.push({id:uid(), text:text.trim(), x:pt.x, y:pt.y, polyId:activeId});
+        save();
+        buildSVG();
+        setStatusHint('Note added',1500);
+        renderList();
+      }
+    }
   });
 
   // init
-  renderList(); buildSVG();
+  renderList();
+  uiTools();
 })();
 </script>
 </body>
